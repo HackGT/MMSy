@@ -52,8 +52,11 @@ See [Contributing](#contributing) for more information.
 
 ```
 pipenv install
-# TODO: start app
+FLASK_APP=server.py flask run
 ```
 
 ## Contributing
 - Pipenv
+
+**TODO**:
+- Deploy Flask behind a production-ready web server (see https://vsupalov.com/flask-web-server-in-production/ and http://flask.pocoo.org/docs/0.12/deploying/)
