@@ -59,4 +59,5 @@ FLASK_APP=server.py flask run
 - Pipenv
 
 **TODO**:
+- JSON logger
 - Deploy Flask behind a production-ready web server (see https://vsupalov.com/flask-web-server-in-production/ and http://flask.pocoo.org/docs/0.12/deploying/)
