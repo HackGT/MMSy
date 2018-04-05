@@ -1,5 +1,7 @@
+import atexit
 from collections import namedtuple
 from datetime import datetime
+import functools
 from queue import Queue
 import threading
 
@@ -8,24 +10,48 @@ from twilio.twiml.messaging_response import MessagingResponse
 
 import config
 from logger import logger
-app = Flask(__name__)
-app.config.from_object(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = config.POSTGRES_URL
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-with app.app_context():
-    from db import db, migrate
-    from model import User, Picture, TCStatus
-from message import create_message, TC_MESSAGE
-from worker import NUM_WORKERS, worker
-
+ConvertRequest = namedtuple('ConvertRequest', ('phone_number', 'picture'))
 queue = Queue()
-def enqueue(picture):
-    queue.put(picture)
+def enqueue(phone_number, picture):
+    queue.put(ConvertRequest(phone_number, picture))
 
-def enqueue_all(pictures):
+def enqueue_all(phone_number, pictures):
     for picture in pictures:
-        enqueue(picture)
+        enqueue(phone_number, picture)
+
+def create_app(queue):
+    app = Flask(__name__)
+    app.config.from_object(__name__)
+    app.config['SQLALCHEMY_DATABASE_URI'] = config.POSTGRES_URL
+    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+    with app.app_context():
+        from db import db, migrate
+        from model import User, Picture, TCStatus
+        from worker import NUM_WORKERS, worker
+
+    stop_event = threading.Event()
+    stop_event.set()
+    background_workers = []
+
+    def interrupt(stop_event):
+        stop_event.clear()
+
+    def start_background_workers(queue, stop_event):
+        background_workers = []
+        for _ in range(NUM_WORKERS):
+            bw_thread = threading.Thread(target=worker, args=(queue, stop_event, db))
+            bw_thread.start()
+            background_workers.append(bw_thread)
+        return background_workers
+
+    background_workers = start_background_workers(queue, stop_event)
+    atexit.register(functools.partial(interrupt, stop_event)) # TODO this doesn't work with gunicorn
+    return app
+
+app = create_app(queue)
+with app.app_context():
+    from model import User, Picture, TCStatus
 
 @app.route("/")
 def hello():
@@ -72,7 +98,7 @@ def handle_incoming():
 
     if user.tc_status is TCStatus.NOTHING:
         log('New user, sending terms and conditions', 'send_tc')
-        response = TC_MESSAGE
+        response = config.TC_AGREEMENT_TEXT
         user.tc_status = TCStatus.SENT
 
     elif user.tc_status is TCStatus.SENT:
@@ -83,10 +109,9 @@ def handle_incoming():
                 response = 'Thank you for agreeing to the terms and conditions.'
                 if len(user.pending) > 0:
                     response += " Processing your {} picture(s) now".format(len(user.pending))
-                    enqueue_all(user.pending)
+                    enqueue_all(user.phone_number, user.pending)
                 else:
                     response += " You can now send me pictures to convert"
-
         else:
             log('Remind to agree to terms and conditions', 'tc_remind')
             response = 'You must agree to the terms and conditions by responding YES before continuing.'
@@ -98,27 +123,13 @@ def handle_incoming():
         assert user.tc_status is TCStatus.AGREED
         if num_media > 0:
             log('Received new pictures', 'more_pictures', num_new_pictures=num_media)
-            response = "Got it! Hard at work processing {} picture(s) for you!".format(num_media)
-            enqueue_all(user.pending)
+            response = "Got it! Hard at work processing {} more /picture(s) for you!".format(num_media)
+            enqueue_all(user.phone_number, user.pending)
 
     user.save()
 
     if not response:
         response = "Sorry, I didn't understand that!"
-    if isinstance(response, str):
-        response = create_message(response)
-    return str(response)
-
-def start_workers(num_workers, queue):
-    threads = []
-    for i in range(num_workers):
-        t = threading.Thread(target=worker, args=(queue,))
-        t.start()
-        threads.append(t)
-    return threads
-
-if __name__=='__main__':
-    # TODO Fix this!
-    start_workers(NUM_WORKERS, queue)
-    for picture in Picture.get_all_pending():
-        enqueue(picture)
+    resp = MessagingResponse()
+    resp.message(response)
+    return str(resp)

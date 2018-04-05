@@ -17,5 +17,7 @@ Flask-SQLAlchemy = "*"
 Flask-Migrate = "*"
 python-json-logger = "*"
 "psycopg2-binary" = "*"
+gunicorn = "*"
+celery = "*"
 
 [dev-packages]

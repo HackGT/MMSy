@@ -59,7 +59,7 @@ See [Contributing](#contributing) for more information.
 pipenv install
 pipenv shell
 flask db upgrade # run database migration
-flask run
+gunicorn -w 2 -b :5000 server:app
 ```
 
 ## Contributing
@@ -67,3 +67,4 @@ flask run
 
 **TODO**:
 - Deploy Flask behind a production-ready web server (see https://vsupalov.com/flask-web-server-in-production/ and http://flask.pocoo.org/docs/0.12/deploying/)
+- Properly exit workers from gunicorn

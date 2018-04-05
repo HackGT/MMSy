@@ -13,3 +13,6 @@ try:
     BACKEND_API_URL = os.environ['BACKEND_API_URL']
 except KeyError as e:
     raise MissingEnvVarError(e)
+
+with open('user-agreement.txt', 'r') as f:
+    TC_AGREEMENT_TEXT = f.read()

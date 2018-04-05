@@ -55,18 +55,20 @@ def send_converted_image(phone, picture):
     """
     TwilioClient.send_message(phone, media_url=picture.converted_url)
 
-def worker(q):
-    while True:
+def worker(q, stop_event, db):
+    logger.info("Start worker")
+    while stop_event.wait():
         phone, picture = q.get()
+        # TODO this is broken
+        # db.session.add(picture)
         extra = lambda event: {
-            'user_id': user.id,
             'picture_id': picture.id,
             'event': event
         }
         logger.info('Working on picture', extra=extra('start_convert'))
         try:
             converted_url, timestamp = convert_picture(picture)
-        except HTTPError as e:
+        except requests.HTTPError as e:
             # TODO flag backend status as erroring, notify users that the service is down
             # TODO retry after a specified time?
             logger.warn('Convert request failed', extra=extra('failed_convert'))
@@ -77,4 +79,5 @@ def worker(q):
         else:
             logger.info('Finished converting', extra=extra('finished_convert'))
             send_converted_image(phone, picture)
-            picture.add_converted_info(converted_url, converted_time=timestamp)
+            # picture.add_converted_info(converted_url, converted_time=timestamp)
+    logger.info("End worker")
