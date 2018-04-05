@@ -3,13 +3,19 @@ url = "https://pypi.python.org/simple"
 verify_ssl = true
 name = "pypi"
 
-[packages]
-flask = "*"
-pymongo = "*"
-google-cloud-storage = "*"
-twilio = "*"
-
-[dev-packages]
-
 [requires]
 python_version = "3.6"
+
+[packages]
+Flask = "*"
+google-cloud-storage = "*"
+twilio = "*"
+requests = "*"
+"urllib3" = "*"
+SQLAlchemy = "*"
+Flask-SQLAlchemy = "*"
+Flask-Migrate = "*"
+python-json-logger = "*"
+"psycopg2-binary" = "*"
+
+[dev-packages]

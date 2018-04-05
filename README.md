@@ -14,7 +14,7 @@ before processing any requests.
 ## Requires
 - Python 3.6
   - Flask
-- MongoDB
+- PostgreSQL
 - Google Cloud Storage (account and API key) for photo storage
 - Twilio (account and API key) for SMS and MMS
 - compatible backend API (see details below)
@@ -32,13 +32,18 @@ MMSy). MMSy will respect the `Retry-After` header on `429` and `503` errors
 returned from the backend.
 
 ## Configure
-| Env var           | Default                | Description                                |
-| -------           | -------                | -----------                                |
-| `MONGO_URL`       | `mongodb://localhost/` | Connection string for the MongoDB instance |
-| `UNIQUE_APP_ID`   | `MMSy`                 | Unique id for each deployment              |
-| `GCLOUD_API_KEY`  |                        | API key for Google Cloud Storage           |
-| `TWILIO_API_KEY`  |                        | API key for Twilio                         |
-| `BACKEND_API_URL` |                        | URL where a compatible API is available    |
+| Env var              | Default                 | Description                                |
+| -------              | -------                 | -----------                                |
+| `POSTGRES_URL`       | `postgres://localhost/` | Connection string for the MongoDB instance |
+| `UNIQUE_APP_ID`      | `MMSy`                  | Unique id for each deployment              |
+| `GCLOUD_API_KEY`     |                         | API key for Google Cloud Storage           |
+| `TWILIO_SERVICE_SID` |                         | Twilio messaging service id                |
+| `TWILIO_ACCOUNT_SID` |                         | Twilio account id                          |
+| `TWILIO_AUTH_TOKEN`  |                         | Twilio auth token                          |
+| `BACKEND_API_URL`    |                         | URL where a compatible API is available    |
+
+If developing with `pipenv`, these environment variables can also be put into
+`.env` (see `.env.backup`).
 
 A short (text message length) statement should be put into `user_agreement.txt`
 at the project root (see `./user_agreement.txt.example`). This is the message
@@ -52,12 +57,13 @@ See [Contributing](#contributing) for more information.
 
 ```
 pipenv install
-FLASK_APP=server.py flask run
+pipenv shell
+flask db upgrade # run database migration
+flask run
 ```
 
 ## Contributing
 - Pipenv
 
 **TODO**:
-- JSON logger
 - Deploy Flask behind a production-ready web server (see https://vsupalov.com/flask-web-server-in-production/ and http://flask.pocoo.org/docs/0.12/deploying/)
