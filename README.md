@@ -67,4 +67,6 @@ gunicorn -w 2 -b :5000 server:app
 
 **TODO**:
 - Deploy Flask behind a production-ready web server (see https://vsupalov.com/flask-web-server-in-production/ and http://flask.pocoo.org/docs/0.12/deploying/)
-- Properly exit workers from gunicorn
+- convert queue worker model to synchronous/blocking requests
+- handle image streaming back from endpoint?
+- google cloud upload
