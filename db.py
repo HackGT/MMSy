@@ -1,17 +1,15 @@
-from flask import g, current_app
-from flask_sqlalchemy import SQLAlchemy
-from flask_migrate import Migrate
+from aiopg.sa import create_engine
 
-def get_db():
-    db = getattr(g, '_database', None)
-    if db is None:
-        db = SQLAlchemy()
-        db.init_app(current_app)
-        g._database = db
-    return db
+from config import POSTGRES_URL
 
-def get_migrate():
-    return Migrate(current_app, get_db())
+async def pg_engine(app):
+    engine = await create_engine(
+        dsn = POSTGRES_URL,
+        loop = app.loop
+    )
+    app['db'] = engine
 
-db = get_db()
-migrate = get_migrate()
+    yield
+
+    app['db'].close()
+    await app['db'].wait_closed()

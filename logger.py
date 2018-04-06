@@ -3,7 +3,7 @@ import logging
 
 def getHandler(**kwargs):
     handler = logging.StreamHandler()
-    handler.setFormatter(jsonlogger.JsonFormatter(**kwargs))
+    # handler.setFormatter(jsonlogger.JsonFormatter(**kwargs))
     return handler
 
 def getLogger(handlers=None, logging_level=logging.INFO):
