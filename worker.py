@@ -2,10 +2,10 @@ import asyncio
 from concurrent.futures import CancelledError
 from datetime import datetime
 import functools
-from urllib.parse import urljoin
 import threading
+from urllib.parse import urljoin, quote
 
-from aiohttp import ClientSession
+from aiohttp import ClientSession, ClientError
 from twilio.rest import Client as _twilioClient
 
 from client import TwilioClient
@@ -21,39 +21,27 @@ from model import User, DEFAULT_STYLE
 #     respect_retry_after_header=True
 # )
 
-# async def convert_picture(picture):
-#     """
-#     Sends a request to the backend to convert an image
-#     Returns (converted_image_url, timestamp)
-#     Raises HTTPError
-#     """
-
-#     params = {
-#         'image_url': picture.source
-#     }
-#     if picture.style is not DEFAULT_STYLE:
-#         params['style'] = picture.style
-
-#     async with ClientSession() as session:
-#         async with session.get(BACKEND_API_URL, params=params) as resp:
-#             jsonResp = await resp.json()
-
-#     # s = requests.Session()
-#     # a = requests.adapters.HTTPAdapter(max_retries=_expo_backoff_retry)
-#     # s.mount(BACKEND_API_URL, a)
-
-#     # r = requests.get(urljoin(BACKEND_API_URL, 'convert'), params=params)
-#     # r.raise_for_status()
-
-#     # jsonResp = r.json()
-#     return jsonResp['converted_image_url'], datetime.now()
-
 async def convert_picture(picture):
-    print('start convert picture')
-    await asyncio.sleep(.5)
-    print('finished convert picture')
-    return 'https://www.twilio.com/blog/wp-content/uploads/2016/12/21VC0iKKbFDAY_yVLwtESY3v5-C2KbIh8B-B0q7yU2CGeIs-b4LOBeHcJVX9WgPlfS-6POyD8xBGUgKPAQ63G6-UBYp-aUkIR5GilmibgCQ4Qe6kvEpIQsdLHSQGQXvcGDKiq4gF.png', datetime.now()
+    """
+    Sends a request to the backend to convert an image
+    Returns (converted_image_url, timestamp)
+    Raises HTTPError
+    """
 
+    params = {
+        'image_url': quote(picture.source_url),
+        'style': 'psych01'
+    }
+
+    print(params)
+    # TODO pick random style
+    # if picture.style is not DEFAULT_STYLE:
+    #     params['style'] = picture.style
+
+    async with ClientSession() as session:
+        async with session.get(BACKEND_API_URL, params=params) as resp:
+            jsonResp = await resp.json()
+            return jsonResp['url'], datetime.now()
 
 def send_error_message(phone):
     """
@@ -81,13 +69,15 @@ async def process_pictures(session, pictures):
         logger.info('Working on picture', extra=extra('start_convert'))
         try:
             converted_url, timestamp = await convert_picture(picture)
-        except requests.HTTPError as e:
+        except ClientError as e:
             # TODO flag backend status as erroring, notify users that the service is down
             # TODO retry after a specified time?
             logger.warn('Convert request failed', extra=extra('failed_convert'))
+            picture.failed = True
             send_error_message(phone)
         except:
             logger.warn('Convert failed, unknown error', extra=extra('failed_convert'))
+            picture.failed = True
             send_error_message(phone)
         else:
             logger.info('Finished converting', extra=extra('finished_convert'))

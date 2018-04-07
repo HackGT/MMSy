@@ -5,6 +5,7 @@ import functools
 from aiohttp.web import RouteTableDef, Response
 from twilio.twiml.messaging_response import MessagingResponse
 
+import config
 from logger import logger
 from model import User, Picture, TCStatus
 from worker import process_pictures, test
@@ -48,13 +49,14 @@ async def handle_incoming(request):
              form.get("MediaContentType{}".format(i), ''))
             for i in range(0, num_media)
         ]
-        for media_file in media_files:
+        for media_url, _ in media_files:
             # TODO upload pictures to google cloud storage and delete from twilio servers
             picture = Picture(
-                source_url=media_file,
+                source_url=media_url,
                 create_time=datetime.now(),
                 message_sid=message_sid
             )
+            print(media_url)
             session.add(picture)
             user.add_pending(picture)
 
@@ -78,7 +80,6 @@ async def handle_incoming(request):
                 if len(user.pending) > 0:
                     response += " Processing your {} picture(s) now".format(len(user.pending))
                     asyncio.run_coroutine_threadsafe(process_pictures(session, user.pending), worker_loop)
-                    # request.app.loop.call_soon(functools.partial(process_pictures, session, user.pending))
                     # await process_pictures(session, user.pending)
                 else:
                     response += " You can now send me pictures to convert"
@@ -95,7 +96,6 @@ async def handle_incoming(request):
             log('Received new pictures', 'more_pictures', num_new_pictures=num_media)
             response = "Got it! Hard at work processing {} more /picture(s) for you!".format(num_media)
             asyncio.run_coroutine_threadsafe(process_pictures(session, user.pending), worker_loop)
-            # request.app.loop.call_soon(functools.partial(process_pictures, session, user.pending))
             # await process_pictures(session, user.pending)
 
     session.commit()
