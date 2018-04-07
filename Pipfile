@@ -18,6 +18,5 @@ python-json-logger = "*"
 gunicorn = "*"
 alembic = "*"
 aiohttp = "*"
-aiopg = "*"
 
 [dev-packages]

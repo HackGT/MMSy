@@ -47,10 +47,6 @@ class User(Base):
             user = User(phone_number=phone_number, tc_status=TCStatus.NOTHING)
         return user
 
-    def save(self, session):
-        session.add(self)
-        session.commit()
-
     def __repr__(self):
         return '<User %r %r>' % (self.phone_number, self.tc_status)
 
@@ -76,11 +72,6 @@ class Picture(Base):
         self.converted_url = converted_url
         self.converted_time = converted_time or datetime.now()
         self.style = style or self.style
-        self.save()
-
-    def save(self, session):
-        session.add(self)
-        session.commit()
 
     def __repr__(self):
         return '<Picture %r, converted=%r>' % (self.source_url, self.converted_url is not None)

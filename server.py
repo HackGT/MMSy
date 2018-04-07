@@ -1,7 +1,7 @@
 from aiohttp import web
 
 from routes import routes
-from db import pg_engine
+from db import init_pg
 from worker import worker
 
 def create_app():
@@ -9,7 +9,7 @@ def create_app():
 
     app.add_routes(routes)
 
-    app.cleanup_ctx.append(pg_engine)
+    app.on_startup.append(init_pg)
     app.cleanup_ctx.append(worker)
 
     return app

@@ -5,6 +5,9 @@ import functools
 from urllib.parse import urljoin
 import threading
 
+from aiohttp import ClientSession
+from twilio.rest import Client as _twilioClient
+
 from client import TwilioClient
 from logger import logger
 from config import BACKEND_API_URL
@@ -18,28 +21,39 @@ from model import User, DEFAULT_STYLE
 #     respect_retry_after_header=True
 # )
 
+# async def convert_picture(picture):
+#     """
+#     Sends a request to the backend to convert an image
+#     Returns (converted_image_url, timestamp)
+#     Raises HTTPError
+#     """
+
+#     params = {
+#         'image_url': picture.source
+#     }
+#     if picture.style is not DEFAULT_STYLE:
+#         params['style'] = picture.style
+
+#     async with ClientSession() as session:
+#         async with session.get(BACKEND_API_URL, params=params) as resp:
+#             jsonResp = await resp.json()
+
+#     # s = requests.Session()
+#     # a = requests.adapters.HTTPAdapter(max_retries=_expo_backoff_retry)
+#     # s.mount(BACKEND_API_URL, a)
+
+#     # r = requests.get(urljoin(BACKEND_API_URL, 'convert'), params=params)
+#     # r.raise_for_status()
+
+#     # jsonResp = r.json()
+#     return jsonResp['converted_image_url'], datetime.now()
+
 async def convert_picture(picture):
-    """
-    Sends a request to the backend to convert an image
-    Returns (converted_image_url, timestamp)
-    Raises HTTPError
-    """
-    # params = {
-    #     'image_url': picture.source
-    # }
-    # if picture.style is not DEFAULT_STYLE:
-    #     params['style'] = picture.style
+    print('start convert picture')
+    await asyncio.sleep(.5)
+    print('finished convert picture')
+    return 'https://www.twilio.com/blog/wp-content/uploads/2016/12/21VC0iKKbFDAY_yVLwtESY3v5-C2KbIh8B-B0q7yU2CGeIs-b4LOBeHcJVX9WgPlfS-6POyD8xBGUgKPAQ63G6-UBYp-aUkIR5GilmibgCQ4Qe6kvEpIQsdLHSQGQXvcGDKiq4gF.png', datetime.now()
 
-    # s = requests.Session()
-    # a = requests.adapters.HTTPAdapter(max_retries=_expo_backoff_retry)
-    # s.mount(BACKEND_API_URL, a)
-
-    # r = requests.get(urljoin(BACKEND_API_URL, 'convert'), params=params)
-    # r.raise_for_status()
-
-    # jsonResp = r.json()
-    # return jsonResp['converted_image_url'], datetime.now()
-    pass
 
 def send_error_message(phone):
     """
@@ -59,10 +73,7 @@ def send_converted_image(phone, picture):
 async def process_pictures(session, pictures):
     logger.info("Start processing")
     for picture in pictures:
-        picture = q.get()
         phone = picture.user.phone_number
-        # TODO this is broken
-        # db.session.add(picture)
         extra = lambda event: {
             'picture_id': picture.id,
             'event': event
@@ -80,13 +91,14 @@ async def process_pictures(session, pictures):
             send_error_message(phone)
         else:
             logger.info('Finished converting', extra=extra('finished_convert'))
+            picture.add_converted_info(converted_url, converted_time=timestamp)
             send_converted_image(phone, picture)
-            # picture.add_converted_info(converted_url, converted_time=timestamp)
+    session.commit()
     logger.info("Finished processing")
 
 async def test():
     print("test start")
-    await asyncio.sleep(.5)
+    await asyncio.sleep(2)
     print("test end")
 
 async def worker(app):
