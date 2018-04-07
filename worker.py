@@ -10,7 +10,7 @@ from twilio.rest import Client as _twilioClient
 
 from client import TwilioClient
 from logger import logger
-from config import BACKEND_API_URL
+from config import BACKEND_API_URL, TWILIO_SERVICE_SID, TWILIO_AUTH_TOKEN, TWILIO_ACCOUNT_SID
 from model import User, DEFAULT_STYLE
 
 
@@ -20,6 +20,10 @@ from model import User, DEFAULT_STYLE
 #     backoff_factor=0.5, # exponential backoff
 #     respect_retry_after_header=True
 # )
+
+account = os.environ['TWILIO_ACCOUNT']
+token = os.environ["TWILIO_TOKEN"]
+client = Client(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN)
 
 async def convert_picture(picture):
     """
@@ -56,7 +60,13 @@ def send_converted_image(phone, picture):
     phone - string of phone number
     picture - instance of `model.Picture`
     """
-    TwilioClient.send_message(phone, media_url=picture.converted_url)
+    # TwilioClient.send_message(phone, media_url=picture.converted_url)
+    client.messages.create(
+        to=phone,
+        messaging_service_sid=TWILIO_SERVICE_SID,
+        body="",
+        media_url=picture.converted_url
+    )
 
 async def process_pictures(session, pictures):
     logger.info("Start processing")
