@@ -45,6 +45,7 @@ class User(Base):
         user = session.query(User).filter_by(phone_number=phone_number).first()
         if user is None:
             user = User(phone_number=phone_number, tc_status=TCStatus.NOTHING)
+            session.add(user)
         return user
 
     def __repr__(self):

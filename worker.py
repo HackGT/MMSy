@@ -1,4 +1,5 @@
 import asyncio
+import os
 from concurrent.futures import CancelledError
 from datetime import datetime
 import functools
@@ -6,7 +7,7 @@ import threading
 from urllib.parse import urljoin, quote
 
 from aiohttp import ClientSession, ClientError
-from twilio.rest import Client as _twilioClient
+from twilio.rest import Client
 
 from client import TwilioClient
 from logger import logger
@@ -21,8 +22,6 @@ from model import User, DEFAULT_STYLE
 #     respect_retry_after_header=True
 # )
 
-account = os.environ['TWILIO_ACCOUNT']
-token = os.environ["TWILIO_TOKEN"]
 client = Client(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN)
 
 async def convert_picture(picture):
@@ -33,8 +32,8 @@ async def convert_picture(picture):
     """
 
     params = {
-        'image_url': quote(picture.source_url),
-        'style': 'psych01'
+        'image_url': quote(picture.source_url)
+        #'style': 'psych01'
     }
 
     print(params)
